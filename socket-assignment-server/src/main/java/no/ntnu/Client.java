@@ -1,7 +1,5 @@
 package no.ntnu;
 
-import java.net.InetAddress;
-
 /**
  * Stores information about a specific client, including the address and last message received from this client
  */

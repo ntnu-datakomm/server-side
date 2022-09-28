@@ -1,6 +1,8 @@
 package no.ntnu;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Represents the business logic of the application (not dependent on any UDP, sockets, etc)
