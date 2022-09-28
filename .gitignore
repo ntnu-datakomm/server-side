@@ -11,3 +11,5 @@ buildNumber.properties
 .mvn/wrapper/maven-wrapper.jar
 
 example-udp-server/.idea/
+
+socket-assignment-server/.idea/
