@@ -1,19 +1,14 @@
 package no.ntnu;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 
 /**
  * Handler for one client connection
  */
 public class ClientHandler implements Runnable {
-    // Character used to mark end of a command
-    private static final Character TERMINATING_CHARACTER = '.';
-    private final InputStream inputStream;
-    private final OutputStream outputStream;
     private final String clientId;
+    private final SocketHandler socketHandler;
     // The task assigned to this client
     private String assignedTask;
 
@@ -23,8 +18,7 @@ public class ClientHandler implements Runnable {
      * @param clientSocket Socket for this particular client
      */
     public ClientHandler(Socket clientSocket) throws IOException {
-        this.inputStream = clientSocket.getInputStream();
-        this.outputStream = clientSocket.getOutputStream();
+        this.socketHandler = new SocketHandler(clientSocket);
         this.clientId = clientSocket.getInetAddress().getHostName() + "[:" + clientSocket.getPort() + "]";
     }
 
@@ -36,18 +30,19 @@ public class ClientHandler implements Runnable {
 
         boolean clientAlive = true;
         while (clientAlive) {
-            String clientCommand = waitForNextClientCommand();
+            String clientCommand = socketHandler.waitForNextCommand();
             if (clientCommand != null) {
-                if (Logic.isClientRequestingATask(clientCommand)) {
+                if (Logic.isTaskRequest(clientCommand)) {
                     String task = Logic.getRandomTask();
-                    if (sendResponse(assignedTask)) {
+                    System.out.println("Client " + clientId + " asking for a new task, here it is: " + task);
+                    if (socketHandler.send(task)) {
                         assignedTask = task;
                     }
                 } else {
                     if (Logic.hasClientAnsweredCorrectly(assignedTask, clientCommand)) {
-                        sendResponse(Logic.OK);
+                        socketHandler.send(Logic.OK);
                     } else {
-                        sendResponse(Logic.ERROR);
+                        socketHandler.send(Logic.ERROR);
                     }
                 }
             } else {
@@ -55,64 +50,6 @@ public class ClientHandler implements Runnable {
                 clientAlive = false;
             }
         }
-    }
-
-    /**
-     * Send a response to the client
-     *
-     * @param response The response to send
-     * @return True on success, false on error
-     */
-    private boolean sendResponse(String response) {
-        boolean success = false;
-
-        byte[] dataToSend = response.getBytes();
-        try {
-            outputStream.write(dataToSend, 0, dataToSend.length);
-            outputStream.flush();
-            success = true;
-        } catch (IOException e) {
-            System.out.println("Error while sending response `" + response + "`: " + e.getMessage());
-        }
-        return success;
-    }
-
-    /**
-     * Wait for the next command from the client. Read the incoming bytes until the next terminating symbol
-     *
-     * @return The received command, null on socket error
-     */
-    private String waitForNextClientCommand() {
-        StringBuilder buffer = new StringBuilder();
-        Character receivedChar = receiveNextCharFromClient();
-        while (receivedChar != TERMINATING_CHARACTER && receivedChar != null) {
-            buffer.append(receivedChar);
-            receivedChar = receiveNextCharFromClient();
-        }
-        String command;
-        if (receivedChar != null) {
-            command = buffer.toString();
-        } else {
-            System.out.println("Socket error while reading client input");
-            command = null;
-        }
-        return command;
-    }
-
-    /**
-     * Receive a single character from the client (wait for it)
-     *
-     * @return The received character or null on error
-     */
-    private Character receiveNextCharFromClient() {
-        Character nextChar = null;
-        try {
-            int nextByte = inputStream.read();
-            nextChar = (char) nextByte;
-        } catch (IOException e) {
-            System.out.println("Error while reading next character: " + e.getMessage());
-        }
-        return nextChar;
     }
 
     /**

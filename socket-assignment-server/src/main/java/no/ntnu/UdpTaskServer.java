@@ -33,7 +33,7 @@ public class UdpTaskServer {
         while (true) {
             Client client = waitForNextClientMessage();
             if (client != null) {
-                if (Logic.isClientRequestingATask(client.getLastReceivedMessage())) {
+                if (Logic.isTaskRequest(client.getLastReceivedMessage())) {
                     String task = Logic.getRandomTask();
                     if (sendResponse(client, task)) {
                         client.setAssignedTask(task);
