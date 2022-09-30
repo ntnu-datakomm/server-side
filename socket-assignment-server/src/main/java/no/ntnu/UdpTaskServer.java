@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public class UdpTaskServer {
     // The UDP port on which the server will be listening
-    private static final int SERVER_PORT = 1234;
+    private static final int UDP_PORT_NUMBER = 1234;
 
     // Maximum size of client datagram, in bytes
     private static final int MAX_DATAGRAM_SIZE = 64;
@@ -33,7 +33,7 @@ public class UdpTaskServer {
         while (true) {
             Client client = waitForNextClientMessage();
             if (client != null) {
-                if (Logic.isClientRequestingATask(client.getLastReceivedMessage())) {
+                if (Logic.isTaskRequest(client.getLastReceivedMessage())) {
                     String task = Logic.getRandomTask();
                     if (sendResponse(client, task)) {
                         client.setAssignedTask(task);
@@ -58,8 +58,8 @@ public class UdpTaskServer {
     private boolean openListeningSocket() {
         boolean success = false;
         try {
-            serverSocket = new DatagramSocket(SERVER_PORT);
-            System.out.println("Started UDP server on port " + SERVER_PORT);
+            serverSocket = new DatagramSocket(UDP_PORT_NUMBER);
+            System.out.println("Started UDP server on port " + UDP_PORT_NUMBER);
             success = true;
         } catch (SocketException e) {
             System.out.println("Failed while trying to open socket: " + e.getMessage());

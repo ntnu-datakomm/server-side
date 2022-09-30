@@ -15,7 +15,7 @@ public class Logic {
     public static final String ERROR = "error";
 
     // This is the message a client would send if it asks for a new task
-    private static final String TASK_MESSAGE = "task";
+    public static final String TASK_REQUEST = "task";
 
     // Store the tasks here
     private static final List<String> tasks = new ArrayList<>();
@@ -82,8 +82,8 @@ public class Logic {
      * @param receivedMessage The message received from a client
      * @return True if this message means that the client wants to get a new task; false otherwise
      */
-    public static boolean isClientRequestingATask(String receivedMessage) {
-        return receivedMessage != null && receivedMessage.equals(TASK_MESSAGE);
+    public static boolean isTaskRequest(String receivedMessage) {
+        return receivedMessage != null && receivedMessage.equals(TASK_REQUEST);
     }
 
     /**
@@ -99,5 +99,14 @@ public class Logic {
         if (taskIndex == -1) return false;
         String correctAnswer = answers.get(taskIndex);
         return answer.equals(correctAnswer);
+    }
+
+    /**
+     * Check if this message is an OK (approval)
+     * @param message A message to check
+     * @return True if the message is an OK-message, false otherwise.
+     */
+    public static boolean isOkMessage(String message) {
+        return OK.equals(message);
     }
 }
