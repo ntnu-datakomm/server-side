@@ -1,5 +1,7 @@
 package no.ntnu;
 
+import no.ntnu.tcp.TcpTaskServer;
+
 /**
  * Starts the TCP task-server
  */

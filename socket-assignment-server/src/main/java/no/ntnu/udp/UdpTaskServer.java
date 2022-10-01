@@ -1,9 +1,8 @@
-package no.ntnu;
+package no.ntnu.udp;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketException;
+import no.ntnu.Logic;
+
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,10 +13,7 @@ public class UdpTaskServer {
     // The UDP port on which the server will be listening
     private static final int UDP_PORT_NUMBER = 1234;
 
-    // Maximum size of client datagram, in bytes
-    private static final int MAX_DATAGRAM_SIZE = 64;
-
-    private DatagramSocket serverSocket;
+    private UdpSocketHandler serverSocketHandler;
 
     // All the clients who have had communication with the server. The keys are AddressAndPort objects in string format
     private final Map<String, Client> clients = new HashMap<>();
@@ -26,45 +22,35 @@ public class UdpTaskServer {
      * Starts the server. Then it runs in a never-ending loop.
      */
     public void runIndefinitely() {
-        if (!openListeningSocket()) {
+        serverSocketHandler = UdpSocketHandler.createServerSocket(UDP_PORT_NUMBER);
+        if (serverSocketHandler == null) {
             System.out.println("Could not open a listening socket, aborting...");
             return;
         }
+        System.out.println("UDP task server started");
         while (true) {
             Client client = waitForNextClientMessage();
             if (client != null) {
+                System.out.println("Message from " + client.getAddress() + ": " + client.getLastReceivedMessage());
                 if (Logic.isTaskRequest(client.getLastReceivedMessage())) {
                     String task = Logic.getRandomTask();
+                    System.out.println("Task for the client: " + task);
                     if (sendResponse(client, task)) {
                         client.setAssignedTask(task);
                     }
                 } else {
                     String task = client.getAssignedTask();
+                    System.out.print("Client's answer: " + client.getLastReceivedMessage());
                     if (Logic.hasClientAnsweredCorrectly(task, client.getLastReceivedMessage())) {
+                        System.out.println(" is CORRECT!");
                         sendResponse(client, Logic.OK);
                     } else {
                         sendResponse(client, Logic.ERROR);
+                        System.out.println(" is FAIL!");
                     }
                 }
             }
         }
-    }
-
-    /**
-     * Try to open a listening server socket
-     *
-     * @return True when socket successfully opened, false on error
-     */
-    private boolean openListeningSocket() {
-        boolean success = false;
-        try {
-            serverSocket = new DatagramSocket(UDP_PORT_NUMBER);
-            System.out.println("Started UDP server on port " + UDP_PORT_NUMBER);
-            success = true;
-        } catch (SocketException e) {
-            System.out.println("Failed while trying to open socket: " + e.getMessage());
-        }
-        return success;
     }
 
     /**
@@ -74,24 +60,16 @@ public class UdpTaskServer {
      */
     private Client waitForNextClientMessage() {
         Client client = null;
-        try {
-            final byte[] dataBuffer = new byte[MAX_DATAGRAM_SIZE];
-            final DatagramPacket datagram = new DatagramPacket(dataBuffer, dataBuffer.length);
-            serverSocket.receive(datagram);
-            String message;
-            if (datagram.getLength() > 0) {
-                message = new String(datagram.getData(), 0, datagram.getLength());
-                AddressAndPort clientId = new AddressAndPort(datagram.getAddress(), datagram.getPort());
-                client = findExistingClient(clientId);
-                if (client == null) {
-                    client = new Client(clientId, message);
-                    saveClient(client);
-                } else {
-                    client.setLastReceivedMessage(message);
-                }
+        String message = serverSocketHandler.receive();
+        if (message != null) {
+            InetSocketAddress clientId = serverSocketHandler.getRemoteAddress();
+            client = findExistingClient(clientId);
+            if (client == null) {
+                client = new Client(clientId, message);
+                saveClient(client);
+            } else {
+                client.setLastReceivedMessage(message);
             }
-        } catch (IOException e) {
-            System.out.println("Error while receiving client packet: " + e.getMessage());
         }
         return client;
     }
@@ -102,16 +80,17 @@ public class UdpTaskServer {
      * @param clientId The unique ID of a client to check
      * @return The client or null if no client with such address has ever communicated with the server
      */
-    private Client findExistingClient(AddressAndPort clientId) {
+    private Client findExistingClient(InetSocketAddress clientId) {
         return clients.get(clientId.toString());
     }
 
     /**
      * Save a client so that we can later look it up
+     *
      * @param client A client who just sent its first message to the server
      */
     private void saveClient(Client client) {
-        clients.put(client.getId().toString(), client);
+        clients.put(client.getAddress().toString(), client);
     }
 
     /**
@@ -122,20 +101,6 @@ public class UdpTaskServer {
      * @return True on success, false on error
      */
     private boolean sendResponse(Client client, String message) {
-        boolean success = false;
-
-        byte[] bytesToSend = message.getBytes();
-        AddressAndPort clientId = client.getId();
-        DatagramPacket response = new DatagramPacket(bytesToSend, bytesToSend.length,
-                clientId.getAddress(), clientId.getPort());
-        try {
-            serverSocket.send(response);
-            success = true;
-        } catch (IOException e) {
-            System.out.println("Error while sending a message to the client " + clientId.getAddress().getHostAddress()
-                    + ": " + e.getMessage());
-        }
-
-        return success;
+        return serverSocketHandler.sendTo(client.getAddress(), message);
     }
 }

@@ -1,5 +1,7 @@
 package no.ntnu;
 
+import no.ntnu.udp.UdpTaskServer;
+
 /**
  * Starts the UDP task-server
  */

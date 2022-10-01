@@ -1,4 +1,4 @@
-package no.ntnu;
+package no.ntnu.tcp;
 
 import java.io.IOException;
 import java.net.ServerSocket;

@@ -1,10 +1,12 @@
-package no.ntnu;
+package no.ntnu.tcp;
+
+import no.ntnu.Logic;
 
 import java.io.IOException;
 import java.net.Socket;
 
 /**
- * Handler for one client connection
+ * Handler for one TCP client connection
  */
 public class ClientHandler implements Runnable {
     private final String clientId;
